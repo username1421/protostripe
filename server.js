@@ -10,7 +10,6 @@ const stripe = require("stripe")(myTestSecretKey, {
   apiVersion: "2025-03-31.basil",
 });
 const { v4: uuid } = require("uuid");
-const { getPostMessageAction, getAccountName } = require("./utils");
 
 const data = {
   creds: [],
