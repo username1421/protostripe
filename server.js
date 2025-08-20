@@ -244,7 +244,7 @@ function getPostMessageAction(data = {}, close = false) {
     return `
     window.opener.postMessage(${JSON.stringify(
       data
-    )}, "http://localhost:4200/");
+    )}, "*");
     ${close ? "setTimeout(() => window.close(), 2000);" : ""}
   `;
   } catch (error) {
