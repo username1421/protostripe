@@ -186,7 +186,7 @@ app.get("/authorize", async (req, res) => {
     console.error("Error connecting Stripe account:", error);
 
     res.render(
-      "authorize",
+      "status",
       {
         status: "fail",
         text: `Auth failed due to reason ${error}!`,
