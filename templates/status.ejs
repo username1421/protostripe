@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Status Page</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+
+      padding: 0;
+      margin: 0;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      position: relative;
+
+      padding: 30px;
+      border-radius: 10px;
+      border: 1px solid #4442;
+      box-shadow: 0 2px 4px 0 #4442;
+
+      font-family: sans-serif;
+      font-weight: 400;
+      font-style: normal;
+      font-size: 24px;
+
+      color: #222;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    @keyframes shimmer {
+      to {
+        background-position-x: 0%
+      }
+    }
+
+    .shimmering {
+      --base: #efefef;
+      --light: hsl(from var(--base) calc(h + 15) s calc(l + 5));
+
+      background: linear-gradient(-60deg, var(--base) 40%, var(--light) 50%, var(--base) 75%);
+      background-size: 300%;
+      background-position-x: 300%;
+      animation: shimmer 3s infinite linear;
+    }
+
+    .card[data-status="success"] {
+      background: #8AC926;
+    }
+
+    .card[data-status="fail"] {
+      background: #FF595E;
+    }
+
+    .card[data-status="success"],
+    .card[data-status="fail"] {
+      color: #FFF;
+    }
+
+    .card[data-status="pending"] {
+      --base: #EFEFEF;
+      --light: hsl(from var(--base) calc(h + 15) s calc(l + 5));
+
+      background: linear-gradient(-60deg, var(--base) 40%, var(--light) 50%, var(--base) 75%);
+      background-size: 300%;
+      background-position-x: 300%;
+      animation: shimmer 3s infinite linear;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card" data-status="<%= status %>">
+    <p>
+      <%= text %>
+    </p>
+  </div>
+  <script>
+    <%- action %>
+  </script>
+</body>
+
+</html>

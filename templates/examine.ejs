@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Server Data Examiner</title>
+  <style>
+    :root {
+      --border: #e5e7eb;
+      --bg: #f9fafb;
+      --text: #111827;
+      --muted: #6b7280;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background: white;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: 16px;
+      margin: 0;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: white;
+      padding: 6px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: #f3f4f6;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      overflow: auto;
+    }
+
+    .tab {
+      border: 1px solid var(--border);
+      background: white;
+      padding: 8px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab.active {
+      background: #111827;
+      color: white;
+      border-color: #111827;
+    }
+
+    .badge {
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: var(--bg);
+      color: var(--muted);
+    }
+
+    .tab.active .badge {
+      background: rgba(255, 255, 255, 0.18);
+      color: #f3f4f6;
+    }
+
+    .panel {
+      display: none;
+      padding: 14px;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    .search {
+      margin: 10px 14px 0;
+    }
+
+    .search input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    pre {
+      margin: 12px 0 0;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #0b1020;
+      color: #e5e7eb;
+      overflow: auto;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 12px;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      margin-top: 12px;
+      background: #fafafa;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Server Data Examiner</h1>
+    <div class="controls">
+      <label class="meta">
+        Auto-refresh
+        <input id="auto" type="checkbox" />
+      </label>
+      <select id="interval" class="btn" aria-label="Auto-refresh interval">
+        <option value="2000">2s</option>
+        <option value="5000" selected>5s</option>
+        <option value="10000">10s</option>
+        <option value="30000">30s</option>
+      </select>
+      <button id="refresh" class="btn">Refresh</button>
+    </div>
+  </header>
+
+  <div class="tabs" id="tabs" role="tablist" aria-label="Data keys"></div>
+  <div class="search">
+    <input id="filter" type="search" placeholder="Filter (case-insensitive, matches JSON text)..." />
+  </div>
+  <div id="panels"></div>
+
+  <!-- Safely embed the raw JSON -->
+  <script id="payload" type="application/json"><%- payload %></script>
+
+  <script>
+    // Read and parse embedded data safely
+    function readData() {
+      try {
+        return JSON.parse(document.getElementById('payload').textContent || '{}');
+      } catch (e) {
+        return {};
+      }
+    }
+
+    let DATA = readData();
+
+    // Build UI
+    const tabsEl = document.getElementById('tabs');
+    const panelsEl = document.getElementById('panels');
+    const filterEl = document.getElementById('filter');
+    const refreshBtn = document.getElementById('refresh');
+    const autoChk = document.getElementById('auto');
+    const intervalSel = document.getElementById('interval');
+    let timer = null;
+
+    function pretty(value) {
+      return JSON.stringify(value, null, 2);
+    }
+
+    function countFor(val) {
+      if (Array.isArray(val)) return val.length;
+      if (val && typeof val === 'object') return Object.keys(val).length;
+      return String(val ?? '').length;
+    }
+
+    function renderTabs() {
+      tabsEl.innerHTML = '';
+      const keys = Object.keys(DATA);
+      if (keys.length === 0) {
+        tabsEl.innerHTML = '<span class="meta">No keys in data</span>';
+        return;
+      }
+      keys.forEach((key, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'tab' + (idx === 0 ? ' active' : '');
+        btn.setAttribute('role', 'tab');
+        btn.setAttribute('aria-selected', idx === 0 ? 'true' : 'false');
+        btn.dataset.key = key;
+        btn.innerHTML = `${key} <span class="badge">${countFor(DATA[key])}</span>`;
+        btn.addEventListener('click', () => activate(key));
+        tabsEl.appendChild(btn);
+      });
+    }
+
+    function renderPanels() {
+      panelsEl.innerHTML = '';
+      const keys = Object.keys(DATA);
+      keys.forEach((key, idx) => {
+        const panel = document.createElement('section');
+        panel.id = `panel-${key}`;
+        panel.className = 'panel' + (idx === 0 ? ' active' : '');
+        panel.setAttribute('role', 'tabpanel');
+
+        const content = document.createElement('div');
+        const val = DATA[key];
+
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = `${Array.isArray(val) ? 'Array' : typeof val} • items: ${countFor(val)}`;
+        panel.appendChild(meta);
+
+        const filtered = applyFilterToValue(val, filterEl.value);
+        if (filtered === null) {
+          const empty = document.createElement('div');
+          empty.className = 'empty';
+          empty.textContent = 'No entries match your filter.';
+          panel.appendChild(empty);
+        } else {
+          const pre = document.createElement('pre');
+          // Use textContent to avoid injecting HTML
+          pre.textContent = pretty(filtered);
+          panel.appendChild(pre);
+        }
+
+        panelsEl.appendChild(panel);
+      });
+    }
+
+    function activate(key) {
+      document.querySelectorAll('.tab').forEach(t => {
+        const active = t.dataset.key === key;
+        t.classList.toggle('active', active);
+        t.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      document.querySelectorAll('.panel').forEach(p => {
+        p.classList.toggle('active', p.id === 'panel-' + key);
+      });
+    }
+
+    function applyFilterToValue(val, query) {
+      const q = (query || '').trim().toLowerCase();
+      if (!q) return val;
+
+      // Filter arrays/objects; for primitives, simple substring test
+      if (Array.isArray(val)) {
+        const filtered = val.filter(item => JSON.stringify(item).toLowerCase().includes(q));
+        return filtered.length ? filtered : null;
+      }
+      if (val && typeof val === 'object') {
+        const entries = Object.entries(val).filter(([k, v]) =>
+          (k + ' ' + JSON.stringify(v)).toLowerCase().includes(q)
+        );
+        if (!entries.length) return null;
+        return Object.fromEntries(entries);
+      }
+      return String(val).toLowerCase().includes(q) ? val : null;
+    }
+
+    function renderAll() {
+      renderTabs();
+      renderPanels();
+      // Keep the first tab active if nothing selected yet
+      const firstKey = Object.keys(DATA)[0];
+      if (firstKey) activate(
+        document.querySelector('.tab.active')?.dataset.key || firstKey
+      );
+    }
+
+    // Refresh logic: re-fetch the page to get fresh JSON (simple & robust for testing)
+    function refreshNow() {
+      fetch(location.href, { headers: { 'X-Partial': '1' } })
+        .then(resp => resp.text())
+        .then(html => {
+          // Extract new JSON from the returned HTML (payload script tag)
+          const match = html.match(/<script id="payload" type="application\/json">([\s\S]*?)<\/script>/);
+          if (!match) return;
+          const json = match[1];
+          const payloadEl = document.getElementById('payload');
+          payloadEl.textContent = json;
+          DATA = readData();
+          renderAll();
+        })
+        .catch(console.error);
+    }
+
+    refreshBtn.addEventListener('click', refreshNow);
+    autoChk.addEventListener('change', () => {
+      clearInterval(timer);
+      if (autoChk.checked) {
+        timer = setInterval(refreshNow, Number(intervalSel.value));
+      }
+    });
+    intervalSel.addEventListener('change', () => {
+      if (autoChk.checked) {
+        clearInterval(timer);
+        timer = setInterval(refreshNow, Number(intervalSel.value));
+      }
+    });
+    filterEl.addEventListener('input', renderPanels);
+
+    // Initial render
+    renderAll();
+  </script>
+</body>
+
+</html>
