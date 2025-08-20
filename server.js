@@ -34,7 +34,7 @@ app.post("/create-checkout-session", async (req, res) => {
       line_items: line_items,
       mode: mode || "payment",
       ui_mode: "custom",
-      return_url: `http://localhost:4242/return?session_id={CHECKOUT_SESSION_ID}`,
+      return_url: `https://protostripe-production.up.railway.app/return?session_id={CHECKOUT_SESSION_ID}`,
       invoice_creation: {
         enabled: true,
       },
