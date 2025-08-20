@@ -239,7 +239,7 @@ app.get("/status", (req, res) => {
 
 app.listen(4242, () => console.log(`I'm here: http://localhost:${4242}!`));
 
-export function getPostMessageAction(data = {}, close = false) {
+function getPostMessageAction(data = {}, close = false) {
   try {
     return `
     window.opener.postMessage(${JSON.stringify(
@@ -254,7 +254,7 @@ export function getPostMessageAction(data = {}, close = false) {
   }
 }
 
-export function getAccountName(accountData = {}) {
+function getAccountName(accountData = {}) {
   const { business_profile, individual } = accountData ?? {};
 
   if (
