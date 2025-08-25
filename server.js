@@ -38,6 +38,7 @@ app.post("/create-checkout-session", async (req, res) => {
       invoice_creation: {
         enabled: true,
       },
+      payment_method_types: ['card'],
     };
 
     if (customer_email) {
