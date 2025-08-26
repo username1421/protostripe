@@ -18,7 +18,18 @@ const data = {
 
 let connectedAccountId = "acct_1RsgIIJD5xdr5twa"; //default mock
 
-app.use(cors({ origin: ["http://localhost:4200", "http://192.168.1.34:4200", "https://molly-related-informally.ngrok-free.app", /elfsight\.com$/, /elfsightcdn\.com$/, /elf\.site$/] }));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:4200",
+      "http://192.168.1.34:4200",
+      "https://molly-related-informally.ngrok-free.app",
+      /elfsight\.com$/,
+      /elfsightcdn\.com$/,
+      /elf\.site$/,
+    ],
+  })
+);
 app.use(express.json());
 
 app.set("view engine", "ejs");
@@ -27,9 +38,28 @@ app.set("views", "./templates");
 // -- create-checkout-session --
 
 app.post("/create-checkout-session", async (req, res) => {
-  const { line_items, customer_email, mode } = req.body;
+  const { line_items, customer_email, mode, domain } = req.body;
 
   try {
+    try {
+      await stripe.paymentMethodDomains.retrieve(domain, {
+        stripeAccount: connectedAccountId,
+      });
+    } catch (err) {
+      if (err.code === "resource_missing") {
+        const methodDomain = await stripe.paymentMethodDomains.create(
+          {
+            domain_name: domain,
+          },
+          { stripeAccount: connectedAccountId }
+        );
+
+        log(methodDomain);
+      } else {
+        throw err;
+      }
+    }
+
     const sessionData = {
       line_items: line_items,
       mode: mode || "payment",
@@ -38,7 +68,7 @@ app.post("/create-checkout-session", async (req, res) => {
       invoice_creation: {
         enabled: true,
       },
-      payment_method_types: ['card'],
+      payment_method_types: ["card"],
     };
 
     if (customer_email) {
@@ -243,9 +273,7 @@ app.listen(4242, () => console.log(`I'm here: http://localhost:${4242}!`));
 function getPostMessageAction(data = {}, close = false) {
   try {
     return `
-    window.opener.postMessage(${JSON.stringify(
-      data
-    )}, "*");
+    window.opener.postMessage(${JSON.stringify(data)}, "*");
     ${close ? "setTimeout(() => window.close(), 2000);" : ""}
   `;
   } catch (error) {
