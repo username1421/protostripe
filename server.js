@@ -18,7 +18,7 @@ const data = {
 
 let connectedAccountId = "acct_1RsgIIJD5xdr5twa"; //default mock
 
-app.use(cors({ origin: ["http://localhost:4200", /elfsight\.com$/, /elfsightcdn\.com$/, /elf\.site$/] }));
+app.use(cors({ origin: ["http://localhost:4200", "http://192.168.1.34:4200", /elfsight\.com$/, /elfsightcdn\.com$/, /elf\.site$/] }));
 app.use(express.json());
 
 app.set("view engine", "ejs");
