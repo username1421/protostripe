@@ -94,7 +94,9 @@ app.use(
     origin: [
       "https://molly-related-informally.ngrok-free.app",
       /http:\/\/192\.168\.1\.34:420\d$/,
+      /http:\/\/192\.168\.1\.34:440\d$/,
       /http:\/\/localhost:420\d$/,
+      /http:\/\/localhost:440\d$/,
       /elfsight\.com$/,
       /elfsightcdn\.com$/,
       /elf\.site$/,
